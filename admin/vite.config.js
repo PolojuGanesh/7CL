@@ -1,0 +1,12 @@
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+import process from 'node:process'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:4000',
+    },
+  },
+})
