@@ -52,6 +52,21 @@ code, then start the auction as the host. Password recovery is available only
 in development and returns a one-time token; no email service is used.
 Production requires a strong JWT secret.
 
+## Render deployment
+
+Deploy the backend, frontend, and admin as separate Render services using:
+
+- Backend: `https://sevencl-backend.onrender.com`
+- Frontend: `https://sevencl-frontend.onrender.com`
+- Admin: `https://sevencl-admin.onrender.com`
+
+The frontend and admin default to the deployed backend URL. Set
+`VITE_API_BASE_URL=https://sevencl-backend.onrender.com` in either service's
+build environment to override that default. On the backend, set `CLIENT_ORIGIN`
+to `https://sevencl-frontend.onrender.com,https://sevencl-admin.onrender.com`
+to allow both deployed apps through CORS. Also configure the backend's
+`MONGODB_URI`, a unique `JWT_SECRET`, and `NODE_ENV=production`.
+
 Add auction players from the standalone admin app. It submits the complete
 player profile, role, country code, base price, career statistics, and auction
 availability to the API. The admin endpoint does not require sign-in; anyone

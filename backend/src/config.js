@@ -10,7 +10,14 @@ const required = (name) => {
   return value;
 };
 
-const origins = (process.env.CLIENT_ORIGIN ?? "http://localhost:5173")
+const defaultClientOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://sevencl-frontend.onrender.com",
+  "https://sevencl-admin.onrender.com",
+].join(",");
+
+const origins = (process.env.CLIENT_ORIGIN ?? defaultClientOrigins)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);

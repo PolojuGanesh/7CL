@@ -29,17 +29,27 @@ const io = new Server(server, {
 app.set("io", io);
 app.disable("x-powered-by");
 app.use(helmet());
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || config.clientOrigins.includes(origin)) return callback(null, true);
-    return callback(new AppError(403, "Origin is not allowed by CORS.", "ORIGIN_NOT_ALLOWED"));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || config.clientOrigins.includes(origin))
+        return callback(null, true);
+      return callback(
+        new AppError(
+          403,
+          "Origin is not allowed by CORS.",
+          "ORIGIN_NOT_ALLOWED",
+        ),
+      );
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 app.use("/api", (request, _response, next) => {
-  if (["POST", "PUT", "PATCH"].includes(request.method)) return requireObjectBody(request, _response, next);
+  if (["POST", "PUT", "PATCH"].includes(request.method))
+    return requireObjectBody(request, _response, next);
   return next();
 });
 

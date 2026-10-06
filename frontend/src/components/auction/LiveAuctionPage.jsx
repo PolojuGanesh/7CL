@@ -25,7 +25,7 @@ function LiveAuctionPage() {
   useEffect(() => {
     if (!activeRoom?._id || activeRoom.status !== "auction") return undefined;
 
-    const socketUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+    const socketUrl = import.meta.env.VITE_API_BASE_URL || "https://sevencl-backend.onrender.com";
     const socket = io(socketUrl, { withCredentials: true });
     socketRef.current = socket;
     socket.on("connect", () => {
