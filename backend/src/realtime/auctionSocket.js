@@ -65,6 +65,9 @@ export function setupAuctionSockets(io) {
         if (room.status !== "auction" || room.auction.status !== "open") throw new AppError(409, "The auction is not accepting bids.", "AUCTION_NOT_OPEN");
         const participant = room.participants.find((item) => item.userId.equals(socket.data.userId));
         if (!participant) throw new AppError(403, "Join the room before bidding.");
+        if (room.auction.highestBidderId?.equals(socket.data.userId)) {
+          throw new AppError(409, "You already have the highest bid. Wait for another team to bid.", "ALREADY_HIGHEST_BIDDER");
+        }
         if (participant.squad.length >= room.maxSquadSize) throw new AppError(409, "Your squad is full.", "SQUAD_FULL");
         if (
           participant.squad.length >= MIN_SQUAD_SIZE

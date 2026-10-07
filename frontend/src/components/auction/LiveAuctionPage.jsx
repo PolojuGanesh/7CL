@@ -244,7 +244,7 @@ function LiveAuctionPage() {
               <div className="bid-actions">
                 <button className="button button-pass" type="button" onClick={passOnPlayer} disabled={!ownTeam || hasPassed || highestBidder?.userId === user?._id}>{hasPassed ? "Passed" : "Pass"}</button>
                 <span className="auction-auto-bid-note">Live bidding</span>
-                <button className="button button-gold button-bid-now" type="button" onClick={placeBid} disabled={!ownTeam || hasPassed || nextBidLakhs > ownTeam.budgetLakhs - ownTeam.spentLakhs}>
+                <button className="button button-gold button-bid-now" type="button" onClick={placeBid} disabled={!ownTeam || hasPassed || highestBidder?.userId === user?._id || nextBidLakhs > ownTeam.budgetLakhs - ownTeam.spentLakhs}>
                   <Icon name="gavel" size={15} /> Bid {formatLakhs(nextBidLakhs)}
                 </button>
               </div>
