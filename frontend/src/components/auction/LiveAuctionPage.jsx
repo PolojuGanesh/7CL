@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Icon from "../Icon.jsx";
 import RoomLayout from "./RoomLayout.jsx";
-import { apiRequest, formatLakhs } from "../../api.js";
+import { apiRequest, formatLakhs, getAccessToken } from "../../api.js";
 import { useAuth } from "../../contexts/useAuth.js";
 import { useRoom } from "../../contexts/useRoom.js";
 
@@ -26,7 +26,10 @@ function LiveAuctionPage() {
     if (!activeRoom?._id || activeRoom.status !== "auction") return undefined;
 
     const socketUrl = import.meta.env.VITE_API_BASE_URL || "https://sevencl-backend.onrender.com";
-    const socket = io(socketUrl, { withCredentials: true });
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      auth: { token: getAccessToken() },
+    });
     socketRef.current = socket;
     socket.on("connect", () => {
       socket.emit("room:join", { roomId: activeRoom._id }, (result) => {

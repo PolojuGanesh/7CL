@@ -30,8 +30,9 @@ router.post("/register", authLimiter, asyncHandler(async (request, response) => 
 
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await User.create({ name, email, passwordHash });
-  setSessionCookie(response, createAccessToken(user));
-  response.status(201).json({ user });
+  const accessToken = createAccessToken(user);
+  setSessionCookie(response, accessToken);
+  response.status(201).json({ user, accessToken });
 }));
 
 router.post("/login", authLimiter, asyncHandler(async (request, response) => {
@@ -43,8 +44,9 @@ router.post("/login", authLimiter, asyncHandler(async (request, response) => {
     throw new AppError(401, "Email or password is incorrect.", "INVALID_CREDENTIALS");
   }
 
-  setSessionCookie(response, createAccessToken(user));
-  response.json({ user });
+  const accessToken = createAccessToken(user);
+  setSessionCookie(response, accessToken);
+  response.json({ user, accessToken });
 }));
 
 router.get("/me", authenticate, asyncHandler(async (request, response) => {

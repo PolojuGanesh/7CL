@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiRequest } from "../api.js";
+import { apiRequest, clearAccessToken, setAccessToken } from "../api.js";
 import { AuthContext } from "./AuthContextValue.js";
 
 export function AuthProvider({ children, skipSession = false }) {
@@ -16,8 +16,12 @@ export function AuthProvider({ children, skipSession = false }) {
         if (active) setUser(currentUser);
       })
       .catch((error) => {
-        if (active && error.status !== 401) {
-          setSessionError(error.message ?? "Could not connect to the 7CL API.");
+        if (active) {
+          if (error.status === 401) {
+            clearAccessToken();
+          } else {
+            setSessionError(error.message ?? "Could not connect to the 7CL API.");
+          }
         }
       })
       .finally(() => {
@@ -33,16 +37,19 @@ export function AuthProvider({ children, skipSession = false }) {
     sessionError,
     async login(credentials) {
       const result = await apiRequest("/auth/login", { method: "POST", body: credentials });
+      setAccessToken(result.accessToken);
       setUser(result.user);
       return result.user;
     },
     async register(details) {
       const result = await apiRequest("/auth/register", { method: "POST", body: details });
+      setAccessToken(result.accessToken);
       setUser(result.user);
       return result.user;
     },
     async logout() {
       await apiRequest("/auth/logout", { method: "POST", body: {} });
+      clearAccessToken();
       setUser(null);
     },
     updateUser(nextUser) {
