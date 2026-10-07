@@ -6,6 +6,7 @@ import { User } from "../models/User.js";
 import { AppError } from "../utils/errors.js";
 import { verifyAccessToken } from "../utils/auth.js";
 import { ensureParticipantBudgets } from "../utils/roomBudget.js";
+import { MIN_SQUAD_SIZE } from "../utils/squadLimits.js";
 
 const bidIncrementsLakhs = new Set([25, 50, 100, 200]);
 const secondsPerLot = 30;
@@ -65,6 +66,16 @@ export function setupAuctionSockets(io) {
         const participant = room.participants.find((item) => item.userId.equals(socket.data.userId));
         if (!participant) throw new AppError(403, "Join the room before bidding.");
         if (participant.squad.length >= room.maxSquadSize) throw new AppError(409, "Your squad is full.", "SQUAD_FULL");
+        if (
+          participant.squad.length >= MIN_SQUAD_SIZE
+          && room.participants.some((team) => team.squad.length < MIN_SQUAD_SIZE)
+        ) {
+          throw new AppError(
+            409,
+            `Teams must reach ${MIN_SQUAD_SIZE} players before anyone can add players beyond ${MIN_SQUAD_SIZE}.`,
+            "MINIMUM_SQUAD_PENDING",
+          );
+        }
         if (participant.passedLotIndex === room.auction.lotIndex) throw new AppError(409, "You passed on this player and cannot bid on this lot.", "LOT_PASSED");
         if (amountLakhs !== room.auction.currentBidLakhs + incrementLakhs) throw new AppError(409, "The bid changed. Refresh and try again.", "BID_OUTDATED");
         if (amountLakhs > participant.budgetLakhs - participant.spentLakhs) throw new AppError(409, "Your remaining budget is too low for this bid.", "BUDGET_EXCEEDED");
@@ -113,6 +124,12 @@ export function setupAuctionSockets(io) {
 
         const participant = room.participants.find((item) => item.userId.equals(socket.data.userId));
         if (!participant) throw new AppError(403, "Join the room before passing.");
+        if (
+          participant.squad.length < MIN_SQUAD_SIZE
+          && room.participants.some((team) => team.squad.length < MIN_SQUAD_SIZE)
+        ) {
+          throw new AppError(409, `You must keep bidding until your team reaches ${MIN_SQUAD_SIZE} players.`, "MINIMUM_SQUAD_REQUIRED");
+        }
         if (room.auction.highestBidderId?.equals(socket.data.userId)) {
           throw new AppError(409, "You cannot pass after placing the highest bid.", "HIGHEST_BIDDER_CANNOT_PASS");
         }
@@ -164,15 +181,34 @@ export function setupAuctionSockets(io) {
         status: "auction",
         "auction.status": "open",
         "auction.endsAt": { $ne: null, $lte: new Date(Date.now() + 1000) },
-      }).select("_id auction");
+      }).select("_id auction participants");
 
       for (const room of expiringRooms) {
         const roomId = room.id;
         const expectedRevision = room.auction.revision;
         const nextIndex = room.auction.lotIndex + 1;
-        const nextPlayerId = room.auction.playerIds[nextIndex] ?? null;
-        const nextPlayer = nextPlayerId ? await Player.findById(nextPlayerId).select("_id name basePriceLakhs") : null;
+        let nextPlayerIds = room.auction.playerIds;
+        let nextLotIndex = nextIndex;
+        let nextPlayerId = nextPlayerIds[nextLotIndex] ?? null;
+        let nextPlayer = nextPlayerId ? await Player.findById(nextPlayerId).select("_id name basePriceLakhs") : null;
         const highestBidderId = room.auction.highestBidderId;
+        const minimumPending = room.participants.some((team) => (
+          team.squad.length + (highestBidderId?.equals(team.userId) ? 1 : 0) < MIN_SQUAD_SIZE
+        ));
+        if (!nextPlayer && minimumPending) {
+          const ownedPlayerIds = new Set(
+            room.participants.flatMap((team) => team.squad.map((player) => player.playerId.toString())),
+          );
+          if (highestBidderId) ownedPlayerIds.add(room.auction.currentPlayerId.toString());
+          nextPlayerIds = room.auction.playerIds.filter((playerId) => !ownedPlayerIds.has(playerId.toString()));
+          const availablePlayers = await Player.find({ _id: { $in: nextPlayerIds }, active: true })
+            .select("_id name basePriceLakhs");
+          const availableById = new Map(availablePlayers.map((player) => [player.id, player]));
+          nextPlayerIds = nextPlayerIds.filter((playerId) => availableById.has(playerId.toString()));
+          nextLotIndex = 0;
+          nextPlayerId = nextPlayerIds[0] ?? null;
+          nextPlayer = nextPlayerId ? availableById.get(nextPlayerId.toString()) : null;
+        }
         let update;
 
         if (highestBidderId) {
@@ -216,7 +252,8 @@ export function setupAuctionSockets(io) {
               $set: {
                 status: nextPlayer ? "auction" : "completed",
                 "auction.status": nextPlayer ? "open" : "completed",
-                "auction.lotIndex": nextPlayer ? nextIndex : room.auction.lotIndex,
+                "auction.playerIds": nextPlayerIds,
+                "auction.lotIndex": nextPlayer ? nextLotIndex : room.auction.lotIndex,
                 "auction.currentPlayerId": nextPlayer?._id ?? null,
                 "auction.currentBidLakhs": nextPlayer?.basePriceLakhs ?? 0,
                 "auction.highestBidderId": null,
@@ -235,7 +272,9 @@ export function setupAuctionSockets(io) {
             { _id: room._id, "auction.revision": expectedRevision, "auction.status": "open" },
             {
               $inc: { "auction.revision": 1 },
-              $push: player ? {
+              $push: player && !room.auction.events.some((event) => (
+                event.type === "unsold" && event.playerId.equals(player._id)
+              )) ? {
                 "auction.events": {
                   playerId: player._id,
                   playerName: player.name,
@@ -246,7 +285,8 @@ export function setupAuctionSockets(io) {
               $set: {
                 status: nextPlayer ? "auction" : "completed",
                 "auction.status": nextPlayer ? "open" : "completed",
-                "auction.lotIndex": nextPlayer ? nextIndex : room.auction.lotIndex,
+                "auction.playerIds": nextPlayerIds,
+                "auction.lotIndex": nextPlayer ? nextLotIndex : room.auction.lotIndex,
                 "auction.currentPlayerId": nextPlayer?._id ?? null,
                 "auction.currentBidLakhs": nextPlayer?.basePriceLakhs ?? 0,
                 "auction.highestBidderId": null,

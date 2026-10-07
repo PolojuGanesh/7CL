@@ -16,11 +16,33 @@ test("room model bounds participant and auction history data", () => {
   });
 
   assert.equal(room.validateSync(), undefined);
+  assert.equal(room.maxSquadSize, 22);
   assert.equal(room.participants[0].passedLotIndex, -1);
   assert.equal(room.auction.events.length, 0);
 });
 
-test("room model supports 150 auction lots and rejects histories beyond that", () => {
+test("room model only accepts squad sizes from 13 through 22", () => {
+  const room = new Room({
+    name: "Weekend League",
+    code: "ABC123",
+    createdBy: new mongoose.Types.ObjectId(),
+    maxSquadSize: 12,
+    participants: [
+      { userId: new mongoose.Types.ObjectId(), teamName: "Home XI", budgetLakhs: 1000 },
+      { userId: new mongoose.Types.ObjectId(), teamName: "Away XI", budgetLakhs: 1000 },
+    ],
+  });
+
+  assert.equal(room.validateSync().errors.maxSquadSize.name, "ValidatorError");
+  room.maxSquadSize = 23;
+  assert.equal(room.validateSync().errors.maxSquadSize.name, "ValidatorError");
+  room.maxSquadSize = 13;
+  assert.equal(room.validateSync(), undefined);
+  room.maxSquadSize = 22;
+  assert.equal(room.validateSync(), undefined);
+});
+
+test("room model supports 300 auction history entries and rejects larger histories", () => {
   const playerId = new mongoose.Types.ObjectId();
   const events = (count) => Array.from({ length: count }, (_, index) => ({
     playerId,
@@ -35,12 +57,12 @@ test("room model supports 150 auction lots and rejects histories beyond that", (
       { userId: new mongoose.Types.ObjectId(), teamName: "Home XI", budgetLakhs: 1000 },
       { userId: new mongoose.Types.ObjectId(), teamName: "Away XI", budgetLakhs: 1000 },
     ],
-    auction: { events: events(150) },
+    auction: { events: events(300) },
   });
 
   assert.equal(room.validateSync(), undefined);
 
-  room.auction.events = events(151);
+  room.auction.events = events(301);
   assert.equal(room.validateSync().errors["auction.events"].name, "ValidatorError");
 });
 

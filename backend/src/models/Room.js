@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from "../utils/squadLimits.js";
 
 const squadPlayerSchema = new mongoose.Schema({
   playerId: { type: mongoose.Schema.Types.ObjectId, ref: "Player", required: true },
@@ -45,7 +46,7 @@ const auctionSchema = new mongoose.Schema({
   events: {
     type: [auctionEventSchema],
     default: [],
-    validate: [(events) => events.length <= 150, "Auction history can contain at most 150 lots."],
+    validate: [(events) => events.length <= 300, "Auction history can contain at most 300 lots."],
   },
 }, { _id: false });
 
@@ -56,7 +57,7 @@ const roomSchema = new mongoose.Schema({
   status: { type: String, enum: ["lobby", "auction", "completed"], default: "lobby" },
   budgetLakhs: { type: Number, default: 12000, min: 100, max: 12000 },
   maxTeams: { type: Number, default: 10, min: 2, max: 10 },
-  maxSquadSize: { type: Number, default: 10, min: 1, max: 20 },
+  maxSquadSize: { type: Number, default: MAX_SQUAD_SIZE, min: MIN_SQUAD_SIZE, max: MAX_SQUAD_SIZE },
   participants: { type: [participantSchema], required: true, validate: [(teams) => teams.length <= 10, "Rooms support at most 10 teams."] },
   auction: { type: auctionSchema, default: () => ({}) },
 }, { timestamps: true, strict: "throw" });

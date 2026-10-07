@@ -52,6 +52,12 @@ code, then start the auction as the host. Password recovery is available only
 in development and returns a one-time token; no email service is used.
 Production requires a strong JWT secret.
 
+Each auction team must draft at least 13 players and can hold up to 22. The
+auction checks that the active player pool can meet the minimum before it
+starts, keeps teams at 13 or fewer eligible to bid until every team reaches 13,
+and reoffers unsold players as needed to meet the minimum. Existing rooms with
+the previous 10-player cap are upgraded to 22 when loaded.
+
 ## Render deployment
 
 Deploy the backend, frontend, and admin as separate Render services using:

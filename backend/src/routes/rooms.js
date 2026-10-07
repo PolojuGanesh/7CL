@@ -6,6 +6,7 @@ import { authenticate } from "../middleware/auth.js";
 import { AppError, asyncHandler } from "../utils/errors.js";
 import { parseObjectId } from "../middleware/validate.js";
 import { ensureParticipantBudgets, participantBudgetLakhs } from "../utils/roomBudget.js";
+import { MIN_SQUAD_SIZE } from "../utils/squadLimits.js";
 
 const router = Router();
 router.use(authenticate);
@@ -89,7 +90,13 @@ router.post("/:roomId/start", asyncHandler(async (request, response) => {
   }
 
   const players = await Player.find({ active: true }).sort({ name: 1 }).limit(150).select("_id basePriceLakhs");
-  if (players.length === 0) throw new AppError(409, "No active players are available. Add players from the admin page first.", "PLAYER_POOL_EMPTY");
+  if (players.length < room.participants.length * MIN_SQUAD_SIZE) {
+    throw new AppError(
+      409,
+      `At least ${room.participants.length * MIN_SQUAD_SIZE} active players are required for ${room.participants.length} teams to reach the ${MIN_SQUAD_SIZE}-player minimum.`,
+      "INSUFFICIENT_PLAYERS",
+    );
+  }
 
   const startedRoom = await Room.findOneAndUpdate(
     { _id: room._id, status: "lobby", "auction.revision": room.auction.revision },
@@ -123,6 +130,7 @@ router.get("/:roomId/team", asyncHandler(async (request, response) => {
       id: room.id,
       name: room.name,
       code: room.code,
+      status: room.status,
       budgetLakhs: room.budgetLakhs,
       maxSquadSize: room.maxSquadSize,
     },
@@ -131,6 +139,9 @@ router.get("/:roomId/team", asyncHandler(async (request, response) => {
 
 async function releaseTeamPlayers(request, response, playerId = null) {
   const room = await getRoomForUser(request.params.roomId, request.user._id);
+  if (room.status === "auction") {
+    throw new AppError(409, "Players cannot be released while the auction is live.", "AUCTION_IN_PROGRESS");
+  }
   const participant = room.participants.find((item) => item.userId.equals(request.user._id));
   const player = playerId
     ? participant.squad.find((item) => item.playerId.equals(playerId))

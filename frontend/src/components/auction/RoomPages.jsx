@@ -195,6 +195,7 @@ function TeamPage() {
   const roomId = room?.id ?? room?._id;
   const team = teamResult && teamResult.roomId === roomId ? teamResult.team : data.team;
   const squad = team?.squad ?? [];
+  const auctionLive = room?.status === "auction";
   const filteredRoster = squad.filter((player) => roleFilter === "All" || player.role === roleFilter);
   const roles = ["All", "Batter", "Bowler", "All-rounder", "Wicket-keeper"];
   const remaining = team && room ? team.budgetLakhs - team.spentLakhs : 0;
@@ -219,14 +220,14 @@ function TeamPage() {
   return (
     <RoomLayout activePath="/team" breadcrumb="My team">
       <div className="room-page-content">
-        <PageHeading eyebrow={room?.name ?? "SELECT AN AUCTION ROOM"} title="Your" accent="team" description="Each participant starts with a 120 Cr budget. Release players to refund their purchase price." action={<div className="team-page-actions">{squad.length > 0 && <button className="button button-quiet team-release-button" type="button" disabled={Boolean(teamAction)} onClick={() => updateTeamRoster(`/rooms/${encodeURIComponent(roomId)}/team`, "Release every player in your team? Their purchase prices will be refunded.")}>{teamAction.endsWith("/team") ? "Releasing…" : "Reset team"}</button>}<a className="button button-gold" href={`/auction${roomId ? `?roomId=${encodeURIComponent(roomId)}` : ""}`}><Icon name="gavel" size={15} /> Back to auction</a></div>} />
+        <PageHeading eyebrow={room?.name ?? "SELECT AN AUCTION ROOM"} title="Your" accent="team" description={auctionLive ? "Roster changes are disabled while the auction is live. You can release players after it is complete." : "Each participant starts with a 120 Cr budget. Release players to refund their purchase price."} action={<div className="team-page-actions">{squad.length > 0 && <button className="button button-quiet team-release-button" type="button" disabled={auctionLive || Boolean(teamAction)} onClick={() => updateTeamRoster(`/rooms/${encodeURIComponent(roomId)}/team`, "Release every player in your team? Their purchase prices will be refunded.")}>{teamAction.endsWith("/team") ? "Releasing…" : "Reset team"}</button>}<a className="button button-gold" href={`/auction${roomId ? `?roomId=${encodeURIComponent(roomId)}` : ""}`}><Icon name="gavel" size={15} /> Back to auction</a></div>} />
         <div className="team-summary-grid">
-          <Metric label="SQUAD SIZE" value={`${squad.length} / ${room?.maxSquadSize ?? 10}`} detail={`${Math.max(0, (room?.maxSquadSize ?? 10) - squad.length)} roster spots open`} icon="users" />
+          <Metric label="SQUAD SIZE" value={`${squad.length} / ${room?.maxSquadSize ?? 22}`} detail={`13-player minimum · ${Math.max(0, (room?.maxSquadSize ?? 22) - squad.length)} roster spots open`} icon="users" />
           <Metric label="BUDGET REMAINING" value={formatLakhs(remaining)} detail={`Of ${formatLakhs(room?.budgetLakhs ?? 0)}`} icon="trophy" color="gold" />
           <Metric label="SQUAD VALUE" value={formatLakhs(team?.spentLakhs ?? 0)} detail={`Across ${squad.length} players`} icon="chart" color="green" />
         </div>
         <section className="room-panel room-table-panel">
-          <div className="room-panel-heading"><div><span className="auction-overline">SQUAD ROSTER</span><small>Players bought in this auction</small></div><span className="roster-live"><i /> {Math.max(0, (room?.maxSquadSize ?? 10) - squad.length)} slots open</span></div>
+          <div className="room-panel-heading"><div><span className="auction-overline">SQUAD ROSTER</span><small>Players bought in this auction · minimum 13, maximum 22</small></div><span className="roster-live"><i /> {Math.max(0, (room?.maxSquadSize ?? 22) - squad.length)} slots open</span></div>
           <div className="role-filters" aria-label="Filter team by player role">
             {roles.map((role) => <button className={roleFilter === role ? "filter-chip is-active" : "filter-chip"} type="button" key={role} onClick={() => setRoleFilter(role)}>{role}</button>)}
           </div>
@@ -235,7 +236,7 @@ function TeamPage() {
               <thead><tr><th>PLAYER</th><th>ROLE</th><th>COUNTRY</th><th>SEASON STATS</th><th>BOUGHT FOR</th><th>ACTION</th></tr></thead>
               <tbody>{filteredRoster.map((player) => {
                 const releasePath = `/rooms/${encodeURIComponent(roomId)}/team/${encodeURIComponent(player.playerId)}`;
-                return <tr key={player.playerId}><td><span className="participant-avatar avatar-teal">{player.initials}</span><strong>{player.name}</strong></td><td>{player.role}</td><td>{player.country}</td><td>Season stats unavailable</td><td className="gold-cell">{formatLakhs(player.priceLakhs)}</td><td><button className="team-release-button" type="button" disabled={Boolean(teamAction)} onClick={() => updateTeamRoster(releasePath, `Release ${player.name} from your team and refund ${formatLakhs(player.priceLakhs)}?`)}>{teamAction === releasePath ? "Releasing…" : "Release"}</button></td></tr>;
+                return <tr key={player.playerId}><td><span className="participant-avatar avatar-teal">{player.initials}</span><strong>{player.name}</strong></td><td>{player.role}</td><td>{player.country}</td><td>Season stats unavailable</td><td className="gold-cell">{formatLakhs(player.priceLakhs)}</td><td><button className="team-release-button" type="button" disabled={auctionLive || Boolean(teamAction)} onClick={() => updateTeamRoster(releasePath, `Release ${player.name} from your team and refund ${formatLakhs(player.priceLakhs)}?`)}>{teamAction === releasePath ? "Releasing…" : "Release"}</button></td></tr>;
               })}</tbody>
             </table>
             {error && <p className="empty-state" role="alert">{error}</p>}
