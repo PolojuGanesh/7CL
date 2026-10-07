@@ -66,6 +66,13 @@ build environment to override that default. On the backend, set `CLIENT_ORIGIN`
 to `https://sevencl-frontend.onrender.com,https://sevencl-admin.onrender.com`
 to allow both deployed apps through CORS. Also configure the backend's
 `MONGODB_URI`, a unique `JWT_SECRET`, and `NODE_ENV=production`.
+The API uses a secure `SameSite=None` session cookie in production so browsers
+can send it between the separate Render frontend and backend origins. The
+initial `GET /api/auth/me` request on a signed-out visit returns `401` by
+design; it only indicates that there is no active session yet. After a
+successful login, the browser should retain the session cookie for later
+requests. If it does not, verify that the frontend origin is listed in
+`CLIENT_ORIGIN` and that the browser permits cross-site cookies.
 
 Add auction players from the standalone admin app. It submits the complete
 player profile, role, country code, base price, career statistics, and auction

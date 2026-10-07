@@ -3,6 +3,8 @@ import { config } from "../config.js";
 import { AppError } from "../utils/errors.js";
 import { verifyAccessToken } from "../utils/auth.js";
 
+const sessionCookieSameSite = config.nodeEnv === "production" ? "none" : "lax";
+
 export async function authenticate(request, _response, next) {
   try {
     const authorization = request.get("authorization") ?? "";
@@ -27,7 +29,7 @@ export function setSessionCookie(response, token) {
   response.cookie("7cl_session", token, {
     httpOnly: true,
     secure: config.nodeEnv === "production",
-    sameSite: "lax",
+    sameSite: sessionCookieSameSite,
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -37,7 +39,7 @@ export function clearSessionCookie(response) {
   response.clearCookie("7cl_session", {
     httpOnly: true,
     secure: config.nodeEnv === "production",
-    sameSite: "lax",
+    sameSite: sessionCookieSameSite,
     path: "/",
   });
 }
