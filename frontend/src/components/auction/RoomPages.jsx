@@ -70,6 +70,7 @@ function PlayerCard({ player, action, actionLabel }) {
     <article className="room-player-card">
       <div className={`room-player-art avatar-${player.color ?? "teal"}`}>
         <span className="room-player-country">{player.country}</span>
+        {player.auctionStatus && <span className={`room-player-auction-status status-${player.auctionStatus}`}>{player.auctionStatus}</span>}
         <strong>{player.initials}</strong>
         <span className="room-player-role">{player.role}</span>
       </div>
@@ -256,7 +257,11 @@ function PlayersPage() {
   const [role, setRole] = useState("All roles");
   const [watchlist, setWatchlist] = useState([]);
   const [watchlistError, setWatchlistError] = useState("");
-  const { data, loading, error } = useRoomResource("/players", emptyPlayers);
+  const { activeRoom } = useRoom();
+  const playersPath = activeRoom
+    ? `/players?roomId=${encodeURIComponent(activeRoom._id)}`
+    : "/players";
+  const { data, loading, error } = useRoomResource(playersPath, emptyPlayers);
   const filteredPlayers = useMemo(() => (data.players ?? []).filter((player) => {
     const matchesQuery = `${player.name} ${player.country}`.toLowerCase().includes(query.toLowerCase());
     return matchesQuery && (role === "All roles" || player.role === role);

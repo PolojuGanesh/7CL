@@ -2984,6 +2984,34 @@ main {
   letter-spacing: 0.1em;
 }
 
+.room-player-auction-status {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  background: rgba(8, 15, 19, 0.72);
+  color: #c3cccd;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.room-player-auction-status.status-sold {
+  color: #e8bd61;
+}
+
+.room-player-auction-status.status-unsold {
+  color: #ec9e7e;
+}
+
+.room-player-auction-status.status-released {
+  color: #8ed0b0;
+}
+
 .room-player-role {
   top: auto;
   right: 11px;

@@ -36,6 +36,7 @@ const auctionEventSchema = new mongoose.Schema({
 const auctionSchema = new mongoose.Schema({
   status: { type: String, enum: ["idle", "open", "completed"], default: "idle" },
   playerIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+  releasedPlayerIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
   lotIndex: { type: Number, default: -1, min: -1 },
   currentPlayerId: { type: mongoose.Schema.Types.ObjectId, ref: "Player", default: null },
   currentBidLakhs: { type: Number, default: 0, min: 0 },

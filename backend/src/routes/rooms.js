@@ -109,7 +109,7 @@ router.post("/:roomId/start", asyncHandler(async (request, response) => {
         "auction.currentPlayerId": players[0]._id,
         "auction.currentBidLakhs": players[0].basePriceLakhs,
         "auction.highestBidderId": null,
-        "auction.endsAt": new Date(Date.now() + 30_000),
+        "auction.endsAt": new Date(Date.now() + 15_000),
       },
       $inc: { "auction.revision": 1 },
     },
@@ -155,6 +155,9 @@ async function releaseTeamPlayers(request, response, playerId = null) {
     return response.json({ room, team: participant });
   }
 
+  const releasedPlayerIds = playerId
+    ? [playerId]
+    : participant.squad.map((item) => item.playerId);
   const update = playerId
     ? {
       $pull: { "participants.$[team].squad": { playerId } },
@@ -162,6 +165,7 @@ async function releaseTeamPlayers(request, response, playerId = null) {
         "participants.$[team].spentLakhs": -player.priceLakhs,
         "auction.revision": 1,
       },
+      $addToSet: { "auction.releasedPlayerIds": { $each: releasedPlayerIds } },
     }
     : {
       $set: {
@@ -169,6 +173,7 @@ async function releaseTeamPlayers(request, response, playerId = null) {
         "participants.$[team].spentLakhs": 0,
       },
       $inc: { "auction.revision": 1 },
+      $addToSet: { "auction.releasedPlayerIds": { $each: releasedPlayerIds } },
     };
   const filter = {
     _id: room._id,

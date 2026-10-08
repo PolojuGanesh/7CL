@@ -99,7 +99,8 @@ function LiveAuctionPage() {
 
   const currentPlayer = room?.auction?.currentPlayerId;
   const currentBidLakhs = room?.auction?.currentBidLakhs ?? 0;
-  const nextBidLakhs = currentBidLakhs + selectedIncrement;
+  const hasActiveBid = Boolean(room?.auction?.highestBidderId);
+  const nextBidLakhs = hasActiveBid ? currentBidLakhs + selectedIncrement : currentBidLakhs;
   const ownTeam = room?.participants?.find((participant) => participant.userId === user?._id);
   const hasPassed = ownTeam?.passedLotIndex === room?.auction?.lotIndex;
   const highestBidder = room?.participants?.find((participant) => participant.userId === room?.auction?.highestBidderId);
@@ -230,17 +231,19 @@ function LiveAuctionPage() {
             </div>
             <div className="bid-control-panel">
               <div className="bid-current-line">
-                <div><span className="auction-overline">CURRENT BID</span><strong>{formatLakhs(currentBidLakhs)}</strong></div>
+                <div><span className="auction-overline">{hasActiveBid ? "CURRENT BID" : "BASE PRICE"}</span><strong>{formatLakhs(currentBidLakhs)}</strong></div>
                 <div className="highest-bidder"><span className="mini-team-mark">{highestBidder?.teamName?.slice(0, 2).toUpperCase() ?? "—"}</span><span><small>HIGHEST BIDDER</small><strong>{highestBidder?.teamName ?? "No bids yet"}</strong></span></div>
               </div>
-              <span className="auction-overline increment-label">BID INCREMENT</span>
-              <div className="increment-options" role="group" aria-label="Select bid increment">
-                {increments.map((amount) => (
-                  <button className={selectedIncrement === amount ? "increment-button is-selected" : "increment-button"} type="button" key={amount} aria-pressed={selectedIncrement === amount} onClick={() => setSelectedIncrement(amount)}>
-                    +{amount < 100 ? `${amount}L` : `${amount / 100}Cr`}
-                  </button>
-                ))}
-              </div>
+              {hasActiveBid && <>
+                <span className="auction-overline increment-label">BID INCREMENT</span>
+                <div className="increment-options" role="group" aria-label="Select bid increment">
+                  {increments.map((amount) => (
+                    <button className={selectedIncrement === amount ? "increment-button is-selected" : "increment-button"} type="button" key={amount} aria-pressed={selectedIncrement === amount} onClick={() => setSelectedIncrement(amount)}>
+                      +{amount < 100 ? `${amount}L` : `${amount / 100}Cr`}
+                    </button>
+                  ))}
+                </div>
+              </>}
               <div className="bid-actions">
                 <button className="button button-pass" type="button" onClick={passOnPlayer} disabled={!ownTeam || hasPassed || highestBidder?.userId === user?._id}>{hasPassed ? "Passed" : "Pass"}</button>
                 <span className="auction-auto-bid-note">Live bidding</span>

@@ -19,6 +19,7 @@ test("room model bounds participant and auction history data", () => {
   assert.equal(room.maxSquadSize, 22);
   assert.equal(room.participants[0].passedLotIndex, -1);
   assert.equal(room.auction.events.length, 0);
+  assert.equal(room.auction.releasedPlayerIds.length, 0);
 });
 
 test("room model only accepts squad sizes from 13 through 22", () => {
